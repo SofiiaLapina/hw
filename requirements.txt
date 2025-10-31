@@ -1,1 +1,3 @@
-#тут могла б бути ваша реклама :)
+opencv-python
+pymysql
+requests
