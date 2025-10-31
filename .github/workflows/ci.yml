@@ -1,0 +1,66 @@
+name: CI Build, Sign & Scan
+
+on:
+  push:
+    branches: [dev, stage]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [stage, main]
+
+permissions:
+  contents: write
+  id-token: write
+  security-events: write
+
+jobs:
+  build-sign-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Syft & Grype
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Build pseudo-binary
+        run: |
+          mkdir -p dist
+          zip -j dist/scan_stream.zip 41_scan_stream_default.py README.md requirements.txt
+
+      - name: Generate SBOM
+        run: syft dist/scan_stream.zip -o cyclonedx-json > dist/sbom.json
+
+      - name: Scan SBOM with Grype
+        run: grype sbom:dist/sbom.json -o sarif > dist/grype-results.sarif || true
+
+      - name: Upload SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: dist/grype-results.sarif
+
+      - name: Cosign sign (keyless OIDC)
+        run: cosign sign-blob dist/scan_stream.zip --yes
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-artifacts
+          path: |
+            dist/scan_stream.zip
+            dist/sbom.json
+            dist/grype-results.sarif
+
