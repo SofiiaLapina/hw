@@ -1,0 +1,11 @@
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run dummy test
+        run: echo "Test passed"
