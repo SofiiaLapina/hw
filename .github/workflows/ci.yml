@@ -2,7 +2,7 @@ name: CI Build, Sign & Scan
 
 on:
   push:
-    branches: [dev, stage]
+    branches: [dev, stage, main]  
     tags:
       - 'v*'
   pull_request:
