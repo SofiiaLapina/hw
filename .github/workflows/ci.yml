@@ -63,4 +63,3 @@ jobs:
             dist/scan_stream.zip
             dist/sbom.json
             dist/grype-results.sarif
-
