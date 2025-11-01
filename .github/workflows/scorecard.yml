@@ -1,32 +1,31 @@
-name: OpenSSF Scorecard analysis
+name: OpenSSF Scorecard
 
 on:
-  pull_request:
-    branches: [main, stage]
-  schedule:
-    - cron: '0 12 * * 5'
-  workflow_dispatch:
+  push:
+    branches: [main]
 
 permissions:
   contents: read
-  security-events: write
 
 jobs:
-  analysis:
-    name: Scorecard analysis
+  scorecards:
     runs-on: ubuntu-latest
+    timeout-minutes: 3  
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4  
-
-      - name: Run Scorecard analysis
-        uses: ossf/scorecard-action@v2.3.3  
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          results_file: results.sarif
-          results_format: sarif
-          publish_results: true
+          fetch-depth: 1 
 
-      - name: Upload SARIF results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3  
+      - name: Run Scorecards analysis
+        uses: ossf/scorecard-action@v2.1.2
+        with:
+          results_format: sarif
+          results_file: results.sarif
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Scorecards analysis
+        uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: results.sarif
