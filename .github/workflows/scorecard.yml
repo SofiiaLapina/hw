@@ -1,11 +1,12 @@
 name: OpenSSF Scorecard analysis
 
 on:
-  branch_protection_rule:
+  pull_request:                 
+  branch_protection_rule:      
   schedule:
-    - cron: '0 12 * * 5'  
-  workflow_dispatch:
-
+    - cron: '0 12 * * 5'       
+  workflow_dispatch:        
+  
 permissions:
   contents: read
   security-events: write
@@ -16,11 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@7b4b6c49fe57345db07c8d0b135d32f3fd61f7b3 
-
+        uses: actions/checkout@7b4b6c49fe57345db07c8d0b135d32f3fd61f7b3  
       - name: Run Scorecard analysis
-        uses: ossf/scorecard-action@e38b08c9e3b4ebd7e784685c7a1e5b0d251cc7a2 
-
+        uses: ossf/scorecard-action@e38b08c9e3b4ebd7e784685c7a1e5b0d251cc7a2  
         with:
           results_file: results.sarif
           results_format: sarif
@@ -28,6 +27,5 @@ jobs:
 
       - name: Upload SARIF results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@83f56d7b0c48e8f4d7a32843fa126f7f1f8a5293  
-
         with:
           sarif_file: results.sarif
