@@ -1,9 +1,7 @@
-name: scorecards
+name: OpenSSF Scorecard
 
 on:
   push:
-    branches: [main]
-  pull_request:
     branches: [main]
 
 permissions:
@@ -12,19 +10,22 @@ permissions:
 jobs:
   scorecards:
     runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      id-token: write
-      security-events: write
-      contents: read
-
+    timeout-minutes: 3  
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1 
 
       - name: Run Scorecards analysis
         uses: ossf/scorecard-action@v2.1.2
         with:
-          results_file: results.sarif
           results_format: sarif
-          publish_results: true
+          results_file: results.sarif
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Scorecards analysis
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: results.sarif
