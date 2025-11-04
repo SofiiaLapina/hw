@@ -1,18 +1,21 @@
 build:
 	mkdir -p dist
-	zip -j dist/scan_stream.zip 41_scan_stream_default.py README.md requirements.txt
+	python -m pip install --upgrade pip
+	python -m pip install pyinstaller
+	pyinstaller --onefile 41_scan_stream_default.py --distpath dist
+	mv dist/41_scan_stream_default dist/scan_stream.bin
 
 sbom:
-	syft dist/scan_stream.zip -o cyclonedx-json > dist/sbom.json
+	syft dist/scan_stream.bin -o cyclonedx-json > dist/sbom.json
 
 sign:
-	cosign sign-blob dist/scan_stream.zip \
-		--output-signature dist/scan_stream.zip.sig \
-		--output-certificate dist/scan_stream.zip.pem
+	cosign sign-blob dist/scan_stream.bin \
+		--output-signature dist/scan_stream.bin.sig \
+		--output-certificate dist/scan_stream.bin.pem \
+		--yes
 
 verify:
 	grype sbom:dist/sbom.json
 
 clean:
-	rm -rf dist
-
+	rm -rf dist build *.spec
