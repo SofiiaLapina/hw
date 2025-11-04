@@ -28,21 +28,27 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install Syft & Grype
+      - name: Install Syft, Grype, PyInstaller
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller
+          sudo apt-get update && sudo apt-get install -y zip
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3
+      - name: Add Cosign to PATH
+        run: echo "/usr/local/bin" >> $GITHUB_PATH
 
       - name: Build pseudo-binary
         run: |
           mkdir -p dist
-          zip -j dist/scan_stream.zip 41_scan_stream_default.py README.md requirements.txt
+          pyinstaller --onefile 41_scan_stream_default.py --distpath dist
+          mv dist/41_scan_stream_default dist/scan_stream.bin
 
       - name: Generate SBOM
-        run: syft dist/scan_stream.zip -o cyclonedx-json > dist/sbom.json
+        run: syft dist/scan_stream.bin -o cyclonedx-json > dist/sbom.json
 
       - name: Scan SBOM with Grype
         run: grype sbom:dist/sbom.json -o sarif > dist/grype-results.sarif || true
@@ -56,19 +62,19 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: "1"
         run: |
-          cosign sign-blob dist/scan_stream.zip \
+          cosign sign-blob dist/scan_stream.bin \
             --yes \
-            --output-signature dist/scan_stream.zip.sig \
-            --output-certificate dist/scan_stream.zip.pem
+            --output-signature dist/scan_stream.bin.sig \
+            --output-certificate dist/scan_stream.bin.pem
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: signed-artifacts
           path: |
-            dist/scan_stream.zip
-            dist/scan_stream.zip.sig
-            dist/scan_stream.zip.pem
+            dist/scan_stream.bin
+            dist/scan_stream.bin.sig
+            dist/scan_stream.bin.pem
             dist/sbom.json
             dist/grype-results.sarif
 
@@ -90,9 +96,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/scan_stream.zip
-            dist/scan_stream.zip.sig
-            dist/scan_stream.zip.pem
+            dist/scan_stream.bin
+            dist/scan_stream.bin.sig
+            dist/scan_stream.bin.pem
             dist/sbom.json
             dist/grype-results.sarif
           tag_name: ${{ github.ref_name }}
@@ -100,7 +106,7 @@ jobs:
           body: |
             Automated release created by CI.
             Includes:
-            - Signed pseudo-binary (zip)
+            - Signed pseudo-binary (.bin)
             - Signature (.sig) & Certificate (.pem)
             - SBOM (CycloneDX JSON)
             - Grype scan results (SARIF)
